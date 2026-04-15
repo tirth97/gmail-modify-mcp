@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Cross-platform launcher for gmail-modify-mcp.
+#
+# Forwards every argument to the console-script entry point installed in the
+# project's local virtualenv (.venv). Works on macOS, Linux, WSL, and Git Bash
+# on Windows. Use ./gmail-modify-mcp from the project root.
+#
+# This avoids "command not found" when you forget to activate the venv.
+
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# POSIX layout (.venv/bin/...) on macOS, Linux, WSL.
+if [ -x "$SCRIPT_DIR/.venv/bin/gmail-modify-mcp" ]; then
+    exec "$SCRIPT_DIR/.venv/bin/gmail-modify-mcp" "$@"
+fi
+
+# Windows layout (.venv/Scripts/...) when running this script under Git Bash.
+if [ -x "$SCRIPT_DIR/.venv/Scripts/gmail-modify-mcp.exe" ]; then
+    exec "$SCRIPT_DIR/.venv/Scripts/gmail-modify-mcp.exe" "$@"
+fi
+
+echo "gmail-modify-mcp: venv entry point not found under $SCRIPT_DIR/.venv" >&2
+echo "Set it up with:" >&2
+echo "  python -m venv .venv" >&2
+echo "  ./.venv/bin/python -m pip install -e .   # or .venv\\Scripts\\python.exe on Windows" >&2
+exit 1

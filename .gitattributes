@@ -1,0 +1,17 @@
+# Default: let git decide based on contents, normalize to LF in the repo.
+* text=auto eol=lf
+
+# POSIX shell scripts MUST stay LF. The launcher uses #!/usr/bin/env bash —
+# CRLF would make Linux/macOS fail with "bad interpreter".
+gmail-modify-mcp text eol=lf
+*.sh           text eol=lf
+
+# Windows batch files should be CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binaries and lockfiles
+*.png binary
+*.jpg binary
+*.ico binary

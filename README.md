@@ -25,7 +25,7 @@ Permanent delete is intentionally **not** supported — the OAuth scope used (`g
 
 ## Quick start (the entire flow is two commands)
 
-After cloning and a one-time Google Cloud setup (below), the day-to-day surface is:
+After install + a one-time Google Cloud setup (both below), the day-to-day surface is:
 
 ```bash
 gmail-modify-mcp auth     # one-time browser consent → caches token.json
@@ -45,17 +45,52 @@ gmail-modify-mcp status    print the authenticated account profile (sanity check
 
 ## Install
 
+Pick **one** of these. They produce the same `gmail-modify-mcp` command — the difference is whether it lands on your global PATH or only inside a project venv.
+
+### Option 1 — `pipx` (recommended, truly cross-OS, no venv to activate)
+
+[pipx](https://pipx.pypa.io/) installs Python CLIs into isolated venvs and exposes them on your global PATH. It works identically on macOS, Linux, and Windows.
+
+```bash
+# install pipx if you don't have it (one-time)
+python -m pip install --user pipx && python -m pipx ensurepath
+
+# install this tool straight from GitHub
+pipx install git+https://github.com/tirth97/gmail-modify-mcp.git
+```
+
+After this, `gmail-modify-mcp` is a regular command on your PATH on **every** OS. No venv activation, no wrappers, no `cd` required. Upgrade later with `pipx upgrade gmail-modify-mcp`. [`uv tool install git+https://github.com/tirth97/gmail-modify-mcp.git`](https://docs.astral.sh/uv/) works equivalently if you prefer uv.
+
+### Option 2 — clone + editable install (best for hacking on it)
+
 ```bash
 git clone https://github.com/tirth97/gmail-modify-mcp.git
 cd gmail-modify-mcp
 python -m venv .venv
-# Windows
-.\.venv\Scripts\python.exe -m pip install -e .
-# macOS / Linux
+
+# macOS / Linux / WSL / Git Bash
 ./.venv/bin/python -m pip install -e .
+
+# Windows PowerShell / cmd.exe
+.\.venv\Scripts\python.exe -m pip install -e .
 ```
 
-After `pip install -e .`, the `gmail-modify-mcp` entry-point script is on your venv's PATH (`.venv\Scripts\gmail-modify-mcp.exe` on Windows, `.venv/bin/gmail-modify-mcp` elsewhere).
+After this, the `gmail-modify-mcp` entry-point lives at `.venv/bin/gmail-modify-mcp` (POSIX) or `.venv\Scripts\gmail-modify-mcp.exe` (Windows). It's on your PATH **only when the venv is activated**.
+
+To skip venv activation, the repo includes thin launcher scripts at the project root that forward to the venv entry point:
+
+```bash
+# macOS / Linux / WSL / Git Bash
+./gmail-modify-mcp status
+
+# Windows cmd.exe
+gmail-modify-mcp status
+
+# Windows PowerShell
+.\gmail-modify-mcp status
+```
+
+These detect both `.venv/bin/` and `.venv/Scripts/` automatically and fail with a clear "venv not found" message if you skipped the install step.
 
 ## One-time Google Cloud setup
 
@@ -116,10 +151,12 @@ Expected behavior: the model uses `gmail_search_messages` (hosted) to find a can
 ```
 gmail-modify-mcp/
 ├── .mcp.json                 Claude Code project-scoped server registration
-├── .gitignore                excludes credentials.json, token.json, .venv
+├── .gitignore                excludes credentials.json, token.json, .venv, .claude/
 ├── LICENSE                   MIT
 ├── pyproject.toml            package metadata + gmail-modify-mcp entry point
 ├── README.md
+├── gmail-modify-mcp          POSIX launcher (Option 2) — forwards to .venv/bin
+├── gmail-modify-mcp.bat      Windows launcher (Option 2) — forwards to .venv\Scripts
 ├── credentials.json          (you provide; gitignored)
 ├── token.json                (auto-created on first auth; gitignored)
 └── gmail_mcp_server/
