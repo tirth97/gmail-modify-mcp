@@ -16,6 +16,10 @@ token.json
 # --- Local tooling state ------------------------------------------------------
 # Per-machine Claude Code settings/hooks
 .claude/
+# Project-scoped Claude Code MCP registration. Contains absolute paths to the
+# local venv, so it MUST be machine-local. Copy .mcp.json.example to .mcp.json
+# and edit the paths.
+.mcp.json
 
 # --- Python -------------------------------------------------------------------
 .venv/

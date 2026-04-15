@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy this file to .mcp.json (gitignored) and edit the paths to match your machine. Claude Code auto-discovers .mcp.json when launched from the project root. If you installed via 'pipx install ...' you don't need this file at all - register the global command with 'claude mcp add gmail-modify-mcp -- gmail-modify-mcp' instead.",
+  "mcpServers": {
+    "gmail-modify-mcp": {
+      "command": "/absolute/path/to/gmail-modify-mcp/.venv/bin/gmail-modify-mcp",
+      "args": [],
+      "cwd": "/absolute/path/to/gmail-modify-mcp"
+    }
+  }
+}

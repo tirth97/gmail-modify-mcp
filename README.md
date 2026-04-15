@@ -122,7 +122,16 @@ These steps you do yourself in a browser. They are *not* automated, by design �
 
 ### Option A — project-scoped `.mcp.json`
 
-A `.mcp.json` file is included in the repo. Launch Claude Code from this directory and it auto-discovers the server. Works without any global config.
+The repo ships an `.mcp.json.example` template (with placeholder paths). Copy it and edit the absolute paths to match your machine:
+
+```bash
+# macOS / Linux / WSL / Git Bash
+cp .mcp.json.example .mcp.json
+# Windows PowerShell
+Copy-Item .mcp.json.example .mcp.json
+```
+
+Then open `.mcp.json` and replace `/absolute/path/to/gmail-modify-mcp` with your actual clone path. The real `.mcp.json` is gitignored — your absolute paths never leak to the public repo. Launching Claude Code from this directory will then auto-discover the server.
 
 ### Option B — globally with `claude mcp add`
 
