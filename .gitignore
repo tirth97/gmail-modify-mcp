@@ -1,0 +1,36 @@
+# --- Secrets - NEVER commit ---------------------------------------------------
+# Google OAuth client secrets (the file the server actually reads)
+credentials.json
+# Google's default download filename for OAuth client secrets
+client_secret*.json
+client_secret*.apps.googleusercontent.com.json
+# Cached OAuth token (granted refresh token + access token)
+token.json
+# Misc credential/secret patterns
+*.pem
+*.key
+*secret*
+.env
+.env.*
+
+# --- Local tooling state ------------------------------------------------------
+# Per-machine Claude Code settings/hooks
+.claude/
+
+# --- Python -------------------------------------------------------------------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Editors ------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store

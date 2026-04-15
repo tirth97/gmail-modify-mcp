@@ -1,0 +1,40 @@
+[project]
+name = "gmail-modify-mcp"
+version = "0.1.0"
+description = "Local MCP server exposing gmail_modify_labels (archive, mark read/unread, star, trash) for Claude Code / Cowork."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "tirth97" }]
+keywords = ["mcp", "gmail", "claude", "claude-code", "cowork"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Email",
+]
+dependencies = [
+    "mcp>=1.27.0",
+    "google-api-python-client>=2.190",
+    "google-auth-oauthlib>=1.3",
+    "google-auth>=2.49",
+]
+
+[project.urls]
+Homepage = "https://github.com/tirth97/gmail-modify-mcp"
+Issues = "https://github.com/tirth97/gmail-modify-mcp/issues"
+"Related Issue" = "https://github.com/anthropics/claude-code/issues/36547"
+
+[project.scripts]
+gmail-modify-mcp = "gmail_mcp_server.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["gmail_mcp_server*"]
