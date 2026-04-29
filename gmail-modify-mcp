@@ -5,23 +5,50 @@
 # project's local virtualenv (.venv). Works on macOS, Linux, WSL, and Git Bash
 # on Windows. Use ./gmail-modify-mcp from the project root.
 #
-# This avoids "command not found" when you forget to activate the venv.
+# Two things this does on top of forwarding:
+#  1. Locates the venv entry point at .venv/bin OR .venv/Scripts.
+#  2. Pre-flight OAuth check: if the cached token is invalid (revoked, expired,
+#     missing) AND we're being invoked interactively, automatically re-run the
+#     consent flow before forwarding the requested command — so you don't have
+#     to manually 'rm token.json && gmail-modify-mcp auth' yourself.
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# POSIX layout (.venv/bin/...) on macOS, Linux, WSL.
+# --- 1. Locate the venv entry point ----------------------------------------- #
+
+EXE=""
 if [ -x "$SCRIPT_DIR/.venv/bin/gmail-modify-mcp" ]; then
-    exec "$SCRIPT_DIR/.venv/bin/gmail-modify-mcp" "$@"
+    EXE="$SCRIPT_DIR/.venv/bin/gmail-modify-mcp"            # POSIX layout (macOS/Linux/WSL)
+elif [ -x "$SCRIPT_DIR/.venv/Scripts/gmail-modify-mcp.exe" ]; then
+    EXE="$SCRIPT_DIR/.venv/Scripts/gmail-modify-mcp.exe"    # Windows layout under Git Bash
+else
+    echo "gmail-modify-mcp: venv entry point not found under $SCRIPT_DIR/.venv" >&2
+    echo "Set it up with:" >&2
+    echo "  python -m venv .venv" >&2
+    echo "  ./.venv/bin/python -m pip install -e .   # or .venv\\Scripts\\python.exe on Windows" >&2
+    exit 1
 fi
 
-# Windows layout (.venv/Scripts/...) when running this script under Git Bash.
-if [ -x "$SCRIPT_DIR/.venv/Scripts/gmail-modify-mcp.exe" ]; then
-    exec "$SCRIPT_DIR/.venv/Scripts/gmail-modify-mcp.exe" "$@"
+# --- 2. Pre-flight OAuth refresh check -------------------------------------- #
+#
+# Skip the check when:
+#   - the user is explicitly running 'auth' (which would do the same thing anyway,
+#     so re-running it would be a redundant double-consent)
+#   - stdin or stdout is not a TTY (i.e. we're being launched as a subprocess by
+#     Claude Desktop, ccd, or piped from another tool). The consent flow opens a
+#     browser and binds a temporary local HTTP server; running it in a non-
+#     interactive context would hang or corrupt the parent's stdio (which is
+#     reserved for MCP JSON-RPC framing).
+if [ "${1:-}" != "auth" ] && [ -t 0 ] && [ -t 1 ]; then
+    if ! "$EXE" status >/dev/null 2>&1; then
+        echo "gmail-modify-mcp: cached OAuth token is invalid (expired/revoked/missing)." >&2
+        echo "gmail-modify-mcp: re-running consent flow..." >&2
+        rm -f "$SCRIPT_DIR/token.json"
+        "$EXE" auth
+    fi
 fi
 
-echo "gmail-modify-mcp: venv entry point not found under $SCRIPT_DIR/.venv" >&2
-echo "Set it up with:" >&2
-echo "  python -m venv .venv" >&2
-echo "  ./.venv/bin/python -m pip install -e .   # or .venv\\Scripts\\python.exe on Windows" >&2
-exit 1
+# --- 3. Forward to the real entry point ------------------------------------- #
+
+exec "$EXE" "$@"
