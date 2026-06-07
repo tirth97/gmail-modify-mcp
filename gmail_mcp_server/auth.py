@@ -12,6 +12,7 @@ cached token exists. Subsequent calls are silent.
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -33,6 +34,48 @@ CREDENTIALS_PATH = Path(
 TOKEN_PATH = Path(
     os.environ.get("GMAIL_MCP_TOKEN", _PROJECT_ROOT / "token.json")
 )
+
+
+_DEFAULT_AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
+_DEFAULT_TOKEN_URI = "https://oauth2.googleapis.com/token"
+_DEFAULT_REDIRECT_URIS = ["http://localhost"]
+
+
+def _build_client_config(
+    client_id: str,
+    client_secret: str,
+    *,
+    auth_uri: str | None = None,
+    token_uri: str | None = None,
+    redirect_uris: list[str] | None = None,
+) -> dict:
+    """Build an ``installed`` OAuth client config from user-provided values."""
+    return {
+        "installed": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": auth_uri or _DEFAULT_AUTH_URI,
+            "token_uri": token_uri or _DEFAULT_TOKEN_URI,
+            "redirect_uris": redirect_uris or _DEFAULT_REDIRECT_URIS,
+        }
+    }
+
+
+def save_client_config(
+    client_id: str,
+    client_secret: str,
+    *,
+    auth_uri: str | None = None,
+    token_uri: str | None = None,
+    redirect_uris: list[str] | None = None,
+) -> Path:
+    """Persist an OAuth client config to *CREDENTIALS_PATH* and return the path."""
+    config = _build_client_config(
+        client_id, client_secret,
+        auth_uri=auth_uri, token_uri=token_uri, redirect_uris=redirect_uris,
+    )
+    CREDENTIALS_PATH.write_text(json.dumps(config, indent=2))
+    return CREDENTIALS_PATH
 
 
 def _load_credentials() -> Credentials:

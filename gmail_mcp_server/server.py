@@ -25,7 +25,12 @@ from typing import Any
 from googleapiclient.errors import HttpError
 from mcp.server.fastmcp import FastMCP
 
-from gmail_mcp_server.auth import CREDENTIALS_PATH, TOKEN_PATH, get_service
+from gmail_mcp_server.auth import (
+    CREDENTIALS_PATH,
+    TOKEN_PATH,
+    get_service,
+    save_client_config,
+)
 
 mcp = FastMCP("gmail-modify")
 
@@ -103,6 +108,62 @@ def gmail_modify_labels(
         return {"error": f"{type(e).__name__}: {e}"}
 
 
+@mcp.tool()
+def gmail_setup(
+    client_id: str,
+    client_secret: str,
+    auth_uri: str | None = None,
+    token_uri: str | None = None,
+    redirect_uris: list[str] | None = None,
+) -> dict[str, Any]:
+    """One-time setup: save Google OAuth credentials and complete the consent flow.
+
+    A browser window will open for Google consent. Complete it there.
+
+    Create a Desktop OAuth client at:
+    https://console.cloud.google.com/apis/credentials
+
+    Args:
+        client_id: OAuth 2.0 Client ID (ends in .apps.googleusercontent.com).
+        client_secret: OAuth 2.0 Client Secret (starts with GOCSPX-).
+        auth_uri: Google auth endpoint. Leave empty for the default.
+        token_uri: Google token endpoint. Leave empty for the default.
+        redirect_uris: OAuth redirect URIs. Leave empty for the default.
+
+    Returns:
+        Status dict with authorized email on success.
+    """
+    if TOKEN_PATH.exists():
+        try:
+            service = get_service()
+            profile = service.users().getProfile(userId="me").execute()
+            return {
+                "status": "already_configured",
+                "email": profile.get("emailAddress"),
+                "message": "Gmail is already authorized. No setup needed.",
+            }
+        except Exception:
+            pass
+
+    if not client_id or not client_secret:
+        return {"error": "Both client_id and client_secret are required."}
+
+    try:
+        save_client_config(
+            client_id, client_secret,
+            auth_uri=auth_uri, token_uri=token_uri, redirect_uris=redirect_uris,
+        )
+        service = get_service()
+        profile = service.users().getProfile(userId="me").execute()
+        return {
+            "status": "authorized",
+            "email": profile.get("emailAddress"),
+            "message": f"Setup complete! Authorized as {profile.get('emailAddress')}.",
+        }
+    except Exception as e:
+        return {"error": f"{type(e).__name__}: {e}"}
+
+
 # --------------------------------------------------------------------------- #
 # CLI                                                                          #
 # --------------------------------------------------------------------------- #
@@ -116,14 +177,36 @@ def _cmd_serve(_args: argparse.Namespace) -> int:
 def _cmd_auth(_args: argparse.Namespace) -> int:
     """Run the OAuth consent flow once and cache the token."""
     if not CREDENTIALS_PATH.exists():
-        print(
-            f"ERROR: OAuth client secrets not found at {CREDENTIALS_PATH}.\n"
-            "  1. Create a Desktop OAuth client in Google Cloud Console.\n"
-            "  2. Save the downloaded JSON at the path above.\n"
-            "  3. Re-run: gmail-modify-mcp auth",
-            file=sys.stderr,
+        if not sys.stdin.isatty():
+            print(
+                f"ERROR: OAuth client secrets not found at {CREDENTIALS_PATH}.\n"
+                "Run 'gmail-modify-mcp auth' from an interactive terminal,\n"
+                "or set GMAIL_MCP_CREDENTIALS to point to your credentials.json.",
+                file=sys.stderr,
+            )
+            return 2
+
+        print("OAuth client secrets not found. Let's set them up.\n")
+        print("You need a Google Cloud OAuth client ID (Desktop type).")
+        print("Create one at: https://console.cloud.google.com/apis/credentials\n")
+
+        client_id = input("Paste your Client ID: ").strip()
+        client_secret = input("Paste your Client Secret: ").strip()
+        if not client_id or not client_secret:
+            print("ERROR: Both Client ID and Client Secret are required.", file=sys.stderr)
+            return 2
+
+        auth_uri = input("Auth URI (press Enter for default): ").strip() or None
+        token_uri = input("Token URI (press Enter for default): ").strip() or None
+        redirect_uri = input("Redirect URI (press Enter for default): ").strip()
+        redirect_uris = [redirect_uri] if redirect_uri else None
+
+        path = save_client_config(
+            client_id, client_secret,
+            auth_uri=auth_uri, token_uri=token_uri, redirect_uris=redirect_uris,
         )
-        return 2
+        print(f"\nCredentials saved to: {path}")
+
     try:
         service = get_service()
         profile = service.users().getProfile(userId="me").execute()

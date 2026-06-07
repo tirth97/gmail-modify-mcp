@@ -28,9 +28,11 @@ Permanent delete is intentionally **not** supported — the OAuth scope used (`g
 ```
 gmail-modify-mcp           run the MCP server on stdio (default; no subcommand needed)
 gmail-modify-mcp serve     same as above, explicit
-gmail-modify-mcp auth      run the OAuth consent flow once
+gmail-modify-mcp auth      run the OAuth consent flow (prompts for credentials if needed)
 gmail-modify-mcp status    print the authenticated account profile (sanity check)
 ```
+
+The server also exposes a `gmail_setup` MCP tool that accepts `client_id` and `client_secret` (plus optional endpoint overrides) for setup directly from Claude Code chat.
 
 ---
 
@@ -134,17 +136,13 @@ Manual, browser-only. Do **not** skip steps 3 and 4 or you'll get `Error 403: ac
 4. Under **Test users**, click **+ Add users** and add your own Gmail address.
 5. **APIs & Services → Credentials → + Create credentials → OAuth client ID.**
 6. Application type: **Desktop app**. Name it anything. Click **Create**.
-7. Click **Download JSON** on the new client. The downloaded file will be named `client_secret_<long-id>.apps.googleusercontent.com.json`.
-8. **Rename** it to `credentials.json`.
-9. Move it to:
-   - If you used **Step 1a (pipx)**: any directory you want (a project folder you'll launch from), or wherever you point `GMAIL_MCP_CREDENTIALS` to.
-   - If you used **Step 1b (clone)**: the project root (`gmail-modify-mcp/credentials.json`). `.gitignore` already excludes it.
+7. Copy the **Client ID** and **Client Secret** shown on the screen — you'll paste them in the next step.
 
-> ⚠️ **Top-level key check.** Open `credentials.json`. The first key must be `"installed"`, not `"web"`. If it's `"web"` you accidentally made a Web OAuth client instead of a Desktop one — delete it and re-do step 6 as **Desktop app**.
+> **Advanced:** If you prefer, you can still download the JSON, rename it to `credentials.json`, and place it in the project root (or wherever `GMAIL_MCP_CREDENTIALS` points). The interactive setup in Step 3 is only triggered when no `credentials.json` exists.
 
 ### Step 3 — First-run OAuth consent
 
-Trigger the one-time consent flow. A browser window opens, you pick your Google account, grant the `gmail.modify` scope, and `token.json` gets written next to `credentials.json`.
+Run the `auth` command. If no `credentials.json` exists, it will prompt you to paste the Client ID and Client Secret from Step 2. Then a browser window opens for Google consent.
 
 ```bash
 gmail-modify-mcp auth
@@ -153,9 +151,23 @@ gmail-modify-mcp auth
 Expected output:
 
 ```
+OAuth client secrets not found. Let's set them up.
+
+You need a Google Cloud OAuth client ID (Desktop type).
+Create one at: https://console.cloud.google.com/apis/credentials
+
+Paste your Client ID: 362580762768-xxxx.apps.googleusercontent.com
+Paste your Client Secret: GOCSPX-xxxx
+Auth URI (press Enter for default):
+Token URI (press Enter for default):
+Redirect URI (press Enter for default):
+
+Credentials saved to: .../credentials.json
 Authorized as: you@gmail.com
 Token cached at: .../token.json
 ```
+
+> Most users should press Enter for the Auth URI, Token URI, and Redirect URI prompts to use the Google defaults. Override these only if Google changes their endpoints.
 
 Then sanity check:
 
@@ -167,6 +179,14 @@ gmail-modify-mcp status
 ```
 
 If you see the profile, you're done with the backend. Future runs refresh the token silently — you never have to `auth` again unless you delete `token.json` or change scopes.
+
+#### Alternative: Set up via Claude Code chat
+
+If the MCP server is already wired into Claude Code (Step 4b) but not yet authorized, you can set up directly from chat. Just tell Claude:
+
+> Set up Gmail with client ID `YOUR_CLIENT_ID` and client secret `YOUR_CLIENT_SECRET`.
+
+Claude will call the `gmail_setup` tool, which saves your credentials and opens the browser for consent — no terminal needed.
 
 ### Step 4 — Wire it into your Claude client
 
@@ -310,7 +330,7 @@ Useful if you want to keep secrets in `%APPDATA%` / `~/.config` instead of the p
 
 | Symptom                                                                | Fix                                                                                     |
 | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `OAuth client secrets not found`                                       | `credentials.json` is missing. Re-do Step 2.                                             |
+| `OAuth client secrets not found`                                       | `credentials.json` is missing. Run `gmail-modify-mcp auth` and paste your Client ID/Secret when prompted. |
 | `Error 403: access_denied` in the consent browser                      | You weren't added as a **Test user** in the OAuth consent screen. Go back to Step 2.4.  |
 | Top-level key in `credentials.json` is `"web"` instead of `"installed"`| You created a Web OAuth client. Make a **Desktop app** client instead and re-download.  |
 | `invalid_grant` / scope errors                                         | Delete `token.json` and re-run `gmail-modify-mcp auth`.                                 |
