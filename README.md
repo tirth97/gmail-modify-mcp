@@ -128,7 +128,7 @@ These detect both `.venv/bin/` and `.venv/Scripts/` automatically and fail with 
 
 ### Step 2 — Create Google Cloud OAuth credentials
 
-Manual, browser-only. Do **not** skip steps 3 and 4 or you'll get `Error 403: access_denied`.
+Manual, browser-only. Do **not** skip sub-steps 3 and 4 below or you'll get `Error 403: access_denied`.
 
 1. Open <https://console.cloud.google.com/> and create (or pick) a project.
 2. **APIs & Services → Library → Gmail API → Enable.**
@@ -138,61 +138,13 @@ Manual, browser-only. Do **not** skip steps 3 and 4 or you'll get `Error 403: ac
 6. Application type: **Desktop app**. Name it anything. Click **Create**.
 7. Copy the **Client ID** and **Client Secret** shown on the screen — you'll paste them in the next step.
 
-> **Advanced:** If you prefer, you can still download the JSON, rename it to `credentials.json`, and place it in the project root (or wherever `GMAIL_MCP_CREDENTIALS` points). The interactive setup in Step 3 is only triggered when no `credentials.json` exists.
+> **Advanced:** If you prefer, you can still download the JSON, rename it to `credentials.json`, and place it in the project root (or wherever `GMAIL_MCP_CREDENTIALS` points). The interactive setup in Step 4 is only triggered when no `credentials.json` exists.
 
-### Step 3 — First-run OAuth consent
-
-Run the `auth` command. If no `credentials.json` exists, it will prompt you to paste the Client ID and Client Secret from Step 2. Then a browser window opens for Google consent.
-
-```bash
-gmail-modify-mcp auth
-```
-
-Expected output:
-
-```
-OAuth client secrets not found. Let's set them up.
-
-You need a Google Cloud OAuth client ID (Desktop type).
-Create one at: https://console.cloud.google.com/apis/credentials
-
-Paste your Client ID: 362580762768-xxxx.apps.googleusercontent.com
-Paste your Client Secret: GOCSPX-xxxx
-Auth URI (press Enter for default):
-Token URI (press Enter for default):
-Redirect URI (press Enter for default):
-
-Credentials saved to: .../credentials.json
-Authorized as: you@gmail.com
-Token cached at: .../token.json
-```
-
-> Most users should press Enter for the Auth URI, Token URI, and Redirect URI prompts to use the Google defaults. Override these only if Google changes their endpoints.
-
-Then sanity check:
-
-```bash
-gmail-modify-mcp status
-# Authorized as : you@gmail.com
-# Messages total: 1341
-# Threads total : 930
-```
-
-If you see the profile, you're done with the backend. Future runs refresh the token silently — you never have to `auth` again unless you delete `token.json` or change scopes.
-
-#### Alternative: Set up via Claude Code chat
-
-If the MCP server is already wired into Claude Code (Step 4b) but not yet authorized, you can set up directly from chat. Just tell Claude:
-
-> Set up Gmail with client ID `YOUR_CLIENT_ID` and client secret `YOUR_CLIENT_SECRET`.
-
-Claude will call the `gmail_setup` tool, which saves your credentials and opens the browser for consent — no terminal needed.
-
-### Step 4 — Wire it into your Claude client
+### Step 3 — Wire it into your Claude client
 
 Depending on which Claude you use, pick **one** (or more — they're independent).
 
-#### Step 4a — Claude Code Desktop / Claude Desktop (the chat app)
+#### Step 3a — Claude Code Desktop / Claude Desktop (the chat app)
 
 Both the newer **Claude Code Desktop** (ccd) app and the legacy **Claude Desktop** app read MCP servers from the same config file:
 
@@ -239,7 +191,7 @@ Then **fully quit** the app (system tray → right-click → Quit on Windows, `�
 
 `gmail_modify_labels` should be in the list.
 
-#### Step 4b — Claude Code (CLI)
+#### Step 3b — Claude Code (CLI)
 
 Two ways. Pick whichever fits your workflow.
 
@@ -265,9 +217,59 @@ claude mcp add --scope user gmail-modify-mcp -- \
   "/absolute/path/to/gmail-modify-mcp/.venv/bin/gmail-modify-mcp"
 ```
 
-#### Step 4c — Hosted Cowork (claude.ai web)
+#### Step 3c — Hosted Cowork (claude.ai web)
 
 **Not supported by Option B.** Cowork runs in Anthropic's cloud and can only connect to MCP servers that are reachable from Anthropic's public IP ranges over HTTPS. A local stdio server on your laptop is, by definition, not reachable. Use **Option A** (the hosted instance — not live yet) when you need Cowork support, or use **Claude Code / Claude Desktop** today.
+
+### Step 4 — First-run OAuth consent
+
+Now authorize the server with your Google account. Pick **one** of the two options below.
+
+#### Option A — Via terminal (works everywhere)
+
+```bash
+gmail-modify-mcp auth
+```
+
+If no `credentials.json` exists, it will prompt you to paste the Client ID and Client Secret from Step 2:
+
+```
+OAuth client secrets not found. Let's set them up.
+
+You need a Google Cloud OAuth client ID (Desktop type).
+Create one at: https://console.cloud.google.com/apis/credentials
+
+Paste your Client ID: 362580762768-xxxx.apps.googleusercontent.com
+Paste your Client Secret: GOCSPX-xxxx
+Auth URI (press Enter for default):
+Token URI (press Enter for default):
+Redirect URI (press Enter for default):
+
+Credentials saved to: .../credentials.json
+Authorized as: you@gmail.com
+Token cached at: .../token.json
+```
+
+> Most users should press Enter for the Auth URI, Token URI, and Redirect URI prompts to use the Google defaults. Override these only if Google changes their endpoints.
+
+#### Option B — Via Claude Code chat (no terminal needed)
+
+If you already wired the server into Claude Code (Step 3b), just open a chat and tell Claude:
+
+> Set up Gmail with client ID `YOUR_CLIENT_ID` and client secret `YOUR_CLIENT_SECRET`.
+
+Claude will call the `gmail_setup` tool, which saves your credentials and opens the browser for consent.
+
+#### Verify
+
+```bash
+gmail-modify-mcp status
+# Authorized as : you@gmail.com
+# Messages total: 1341
+# Threads total : 930
+```
+
+If you see the profile, you're done with the backend. Future runs refresh the token silently — you never have to `auth` again unless you delete `token.json` or change scopes.
 
 ### Step 5 — Verify end-to-end
 
